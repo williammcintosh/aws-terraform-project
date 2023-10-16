@@ -2,13 +2,13 @@ provider "aws" {
   region = "us-east-2"
 }
 
-resource "aws_db_instance" "terraform-db" {
-  identifier_prefix   = "mcintosh-terraform-db"
+resource "aws_db_instance" "terraformdb" {
+  identifier_prefix   = "mcintoshterraformdb"
   engine              = "postgres"
   allocated_storage   = 10
   instance_class      = "db.t3.micro"
   skip_final_snapshot = true
-  db_name             = "terraform-db"
+  db_name             = "mcintoshterraformdb"
   
   username = var.db_username
   password = var.db_password
