@@ -4,7 +4,7 @@ provider "aws" {
 
 # Create an S3 bucket to store the terraform state
 resource "aws_s3_bucket" "terraform_state" {
-    # Rename this below to something very unique
+    # Rename this below to something very unique across the world
     bucket = "mcintosh-terraform-state-storage"
     # Prevent accidental deletion of this S3 bucket
     lifecycle {
