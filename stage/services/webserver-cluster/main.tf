@@ -43,11 +43,6 @@ resource "aws_security_group" "instance" {
   }
 }
 
-output "public_ip" {
-    value = aws_instance.example.public_ip
-    description = "The public IP address of the web server"
-}
-
 # Configure actual EC2 instance that runs basic busybox hello world serve
 resource "aws_launch_configuration" "mcintosh-terraform-launch-config" {
     image_id        = "ami-0fb653ca2d3203ac1"
