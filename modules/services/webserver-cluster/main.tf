@@ -6,6 +6,14 @@ terraform {
     }
 }
 
+locals {
+  http_port = 80
+  any_port = 0
+  any_protocol = "-1"
+  tcp_protocol = "tcp"
+  all_ips = ["0.0.0.0/0"]
+}
+
 provider "aws" {
   region = "us-east-2"
   # Reminder use IAM access creds for key/secret,
@@ -33,7 +41,7 @@ data "aws_subnets" "default" {
 
 # Open port 8080 to all traffic
 resource "aws_security_group" "instance" {
-  name = "mcintosh-terraform-instance"
+  name = "${var.cluster_name}-alb"
 
   ingress {
     from_port   = var.server_port
@@ -46,14 +54,14 @@ resource "aws_security_group" "instance" {
 # Configure actual EC2 instance that runs basic busybox hello world serve
 resource "aws_launch_configuration" "mcintosh-terraform-launch-config" {
     image_id        = "ami-0fb653ca2d3203ac1"
-    instance_type   = "t2.micro"
+    instance_type   = var.instance_type
     security_groups = [aws_security_group.instance.id]
 
     # Render the User Data script as a template
-    user_data = templatefile("user-data.sh", {
-        server_port = var.server_port
-        db_address  = data.terraform_remote_state.db.outputs.address
-        db_port     = data.terraform_remote_state.db.outputs.port
+    user_data = templatefile("${path.module}/user-data.sh", {
+      server_port = var.server_port
+      db_address = data.terraform_remote_state.db.outputs.address
+      db_port = data.terraform_remote_state.db.outputs.port
     })
     # Otherwise we'll destroy the old one first
     # but it will still have reference in the ASG
@@ -75,8 +83,8 @@ resource "aws_autoscaling_group" "mcintosh-terraform-asg" {
   # similar to Compose postgres health checks
   health_check_type = "ELB" 
 
-  min_size = 2
-  max_size = 4
+  min_size = var.min_size
+  max_size = var.max_size
 
   tag {
     key                 = "Name"
@@ -90,18 +98,18 @@ resource "aws_security_group" "alb" {
   name = "mcintosh-terraform-alb"
 
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = local.http_port
+    to_port     = local.http_port
+    protocol    = local.tcp_protocol
+    cidr_blocks = local.all_ips
   }
 
   # Allow all outbound traffic for communicating with instances themselves
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = local.any_port
+    to_port     = local.any_port
+    protocol    = local.any_protocol
+    cidr_blocks = local.all_ips
   }
 }
 
@@ -136,7 +144,7 @@ resource "aws_lb_target_group" "asg" {
 # This is what forwards the actual requests to the correct destination behind the load balancer
 resource "aws_lb_listener" "http" {
     load_balancer_arn = aws_lb.mcintosh-terraform-lb.arn
-    port              = 80
+    port              = local.http_port
     protocol          = "HTTP"
 
     default_action {
@@ -168,8 +176,9 @@ resource "aws_lb_listener_rule" "asg" {
 data "terraform_remote_state" "db" {
     backend = "s3"
     config = {
-        bucket = "mcintosh-terraform-state-storage"
-        key    = "stage/data-stores/postgres/terraform.tfstate"
+        bucket = var.db_remote_state_bucket
+        key    = var.db_remote_state_key
         region = "us-east-2"
     }
 }
+
