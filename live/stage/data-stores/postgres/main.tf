@@ -8,16 +8,16 @@ resource "aws_db_instance" "terraformdb" {
   allocated_storage   = 10
   instance_class      = "db.t3.micro"
   skip_final_snapshot = true
-  db_name             = "mcintoshterraformdb"
-  
-  username = var.db_username
-  password = var.db_password
+
+  db_name             = var.db_name
+  username            = var.db_username
+  password            = var.db_password
 }
 
 terraform {
   # Reminder this is partial config, must use terraform init -backend-config=backend.hcl (just init)
   backend "s3" {
-    key = "stage/data-stores/postgres/terraform.tfstate"
+    key = "live/stage/data-stores/postgres/terraform.tfstate"
   }
 }
 
