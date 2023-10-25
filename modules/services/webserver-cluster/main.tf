@@ -47,9 +47,18 @@ resource "aws_autoscaling_group" "mcintosh-terraform-asg" {
   }
 }
 
+# Open port 8080 to all traffic
 resource "aws_security_group" "instance" {
   name = "${var.cluster_name}-instance"
+
+  ingress {
+    from_port   = var.server_port
+    to_port     = var.server_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
+
 
 
 provider "aws" {
