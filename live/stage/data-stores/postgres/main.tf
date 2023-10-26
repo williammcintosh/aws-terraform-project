@@ -12,7 +12,7 @@ module "postgres" {
 terraform {
   # Reminder this is partial config, must use terraform init -backend-config=backend.hcl (just init)
   backend "s3" {
-    key = "live/stage/data-stores/postgres/terraform.tfstate"
+    key = "stage/data-stores/postgres/terraform.tfstate"
   }
 }
 

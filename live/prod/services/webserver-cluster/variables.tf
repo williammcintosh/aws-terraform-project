@@ -12,7 +12,7 @@ variable "db_remote_state_bucket" {
 variable "db_remote_state_key" {
   description = "The name of the key in the S3 bucket used for the database's remote state storage"
   type        = string
-  default     = "live/prod/data-stores/mysql/terraform.tfstate"
+  default     = "prod/data-stores/mysql/terraform.tfstate"
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

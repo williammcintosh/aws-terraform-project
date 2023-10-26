@@ -27,6 +27,6 @@ resource "aws_security_group_rule" "allow_testing_inbound" {
 terraform {
   # Reminder this is partial config, must use terraform init -backend-config=backend.hcl (just init)
   backend "s3" {
-    key = "live/stage/services/webserver-cluster/terraform.tfstate"
+    key = "stage/services/webserver-cluster/terraform.tfstate"
   }
 }

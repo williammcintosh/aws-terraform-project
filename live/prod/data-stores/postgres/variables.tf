@@ -18,5 +18,5 @@ variable "db_password" {
 variable "db_name" {
   description = "The name to use for the database"
   type        = string
-  default     = "mcintosh-terraform-database-prod"
+  default     = "mcintoshterrafomdatabaseprod"
 }

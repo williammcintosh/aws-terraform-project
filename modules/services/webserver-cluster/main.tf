@@ -1,11 +1,3 @@
-terraform {
-    # Reminder this is partial config,
-    # must use terraform init -backend-config=backend.hcl (just init)
-    backend "s3" {
-        key = "stage/services/webserver-cluster/terraform.tfstate"
-    }
-}
-
 # Configure actual EC2 instance that runs basic busybox hello world serve
 resource "aws_launch_configuration" "mcintosh-terraform-launch-config" {
   image_id        = "ami-0fb653ca2d3203ac1"
@@ -59,23 +51,12 @@ resource "aws_security_group" "instance" {
   }
 }
 
-
-
-provider "aws" {
-  region = "us-east-2"
-  # Reminder use IAM access creds for key/secret,
-  # not the ones that connect IAM accounts to amazon accounts
-}
-
-
 # Get default subnet within the aws_vpc
 data "aws_subnets" "default" {
     filter {
         name   = "vpc-id"
         values = [data.aws_vpc.default.id]
     }
-
-    # Add this filter to select only the subnets in the us-west-2[a-c] Availability Zone because 2d doesn't support t2.micro
     filter {
         name   = "availability-zone"
         values = ["us-east-2a", "us-east-2b", "us-east-2c"]
@@ -159,10 +140,6 @@ resource "aws_lb_listener_rule" "asg" {
     }
 }
 
-# resource "aws_security_group" "alb" {
-#   name = "${var.cluster_name}-alb"
-# }
-
 resource "aws_security_group_rule" "allow_http_inbound" {
  type = "ingress"
  security_group_id = aws_security_group.alb.id
@@ -188,12 +165,6 @@ data "terraform_remote_state" "db" {
         region = "us-east-2"
     }
 }
-
-
-
-
-
-
 locals {
   http_port    = 80
   any_port     = 0
@@ -206,11 +177,3 @@ locals {
 data "aws_vpc" "default" {
   default = true
 }
-
-# data "aws_subnets" "default" {
-#   filter {
-#     name   = "vpc-id"
-#     values = [data.aws_vpc.default.id]
-#   }
-# }
-

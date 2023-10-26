@@ -41,6 +41,6 @@ resource "aws_autoscaling_schedule" "scale_in_at_night" {
 terraform {
   # Reminder this is partial config, must use terraform init -backend-config=backend.hcl (just init)
   backend "s3" {
-    key = "live/prod/services/webserver-cluster/terraform.tfstate"
+    key = "prod/services/webserver-cluster/terraform.tfstate"
   }
 }
