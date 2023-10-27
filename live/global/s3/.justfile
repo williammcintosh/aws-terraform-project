@@ -9,3 +9,5 @@ plan:
     terraform plan
 destroy:
     terraform destroy
+refresh:
+    terraform refresh
