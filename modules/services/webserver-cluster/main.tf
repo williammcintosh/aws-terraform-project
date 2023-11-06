@@ -1,14 +1,15 @@
 # Configure actual EC2 instance that runs basic busybox hello world serve
 resource "aws_launch_configuration" "mcintosh-terraform-launch-config" {
-  image_id        = "ami-0fb653ca2d3203ac1"
+  image_id        = var.ami
   instance_type   = var.instance_type
   security_groups = [aws_security_group.instance.id]
 
   # Render the User Data script as a template
-  user_data = templatefile("${path.module}/user-data.sh", {
-    server_port = var.server_port
-    db_address = data.terraform_remote_state.db.outputs.address
-    db_port = data.terraform_remote_state.db.outputs.port
+  user_data       = templatefile("${path.module}/user-data.sh", {
+    server_port   = var.server_port
+    db_address    = data.terraform_remote_state.db.outputs.address
+    db_port       = data.terraform_remote_state.db.outputs.port
+    server_text   = var.server_text
   })
   # Otherwise we'll destroy the old one first
   # but it will still have reference in the ASG
@@ -19,7 +20,10 @@ resource "aws_launch_configuration" "mcintosh-terraform-launch-config" {
 
 # Creates group of instances from 2 to 4 that will scale up based on demand behind the load balancer
 resource "aws_autoscaling_group" "mcintosh-terraform-asg" {
-    # Name from launch config above
+  # Explicitly depend on the launch configuration's name so each time it's
+  # replaced, this ASG is also replaced
+  name = "${var.cluster_name}-${aws_launch_configuration.mcintosh-terraform-launch-config.name}"
+  # Name from launch config above
   launch_configuration = aws_launch_configuration.mcintosh-terraform-launch-config.name
   # Get subnet IDs from data source
   vpc_zone_identifier  = data.aws_subnets.default.ids                             
@@ -32,10 +36,35 @@ resource "aws_autoscaling_group" "mcintosh-terraform-asg" {
   min_size = var.min_size
   max_size = var.max_size
 
+  # Wait for at least this many instances to pass health checks before
+  # considering the ASG deployment complete
+  min_elb_capacity = var.min_size
+
+  # When replacing this ASG, create the replacement first, and only delete the
+  # original after
+  lifecycle {
+    create_before_destroy = true
+  }
+
   tag {
     key                 = "Name"
     value               = var.cluster_name
     propagate_at_launch = true
+  }
+
+  # If var.custom_tags is empty, the for_each expression will have nothing to loop
+  # over, so no tags will be set (page 166)
+  dynamic "tag" {
+    for_each = {
+      for key, value in var.custom_tags:
+      key => upper(value)
+      if key != "Name"
+    }
+    content {
+      key = tag.key
+      value = tag.value
+      propagate_at_launch = true
+    }
   }
 }
 
