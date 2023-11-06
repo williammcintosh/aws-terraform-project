@@ -1,21 +1,21 @@
 provider "aws" {
  region = "us-east-2"
 }
+
 module "webserver_cluster" {
-    source = "../../../../modules/services/webserver-cluster"
+  source = "../../../../modules/services/webserver-cluster"
 
-    # cluster_name = "mcintosh-terraform-stage"
-    # db_remote_state_bucket = "mcintosh-terraform-state-storage"
-    # db_remote_state_key = "stage/data-stores/mysql/terraform.tfstate"
+  ami = "ami-0fb653ca2d3203ac1"
+  server_text = "I'm terraforming from the production environment!"
 
-    cluster_name           = var.cluster_name
-    db_remote_state_bucket = var.db_remote_state_bucket
-    db_remote_state_key    = var.db_remote_state_key
+  cluster_name           = var.cluster_name
+  db_remote_state_bucket = var.db_remote_state_bucket
+  db_remote_state_key    = var.db_remote_state_key
 
-    # IRL prod should use a bigger one, but those aren't free
-    instance_type = "t2.micro" 
-    min_size = 2
-    max_size = 10
+  # IRL prod should use a bigger one, but those aren't free
+  instance_type = "t2.micro" 
+  min_size = 2
+  max_size = 10
 }
 
 resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
@@ -38,9 +38,9 @@ resource "aws_autoscaling_schedule" "scale_in_at_night" {
     autoscaling_group_name = module.webserver_cluster.asg_name
 }
 
-terraform {
-  # Reminder this is partial config, must use terraform init -backend-config=backend.hcl (just init)
-  backend "s3" {
-    key = "prod/services/webserver-cluster/terraform.tfstate"
-  }
-}
+# terraform {
+#   # Reminder this is partial config, must use terraform init -backend-config=backend.hcl (just init)
+#   backend "s3" {
+#     key = "prod/services/webserver-cluster/terraform.tfstate"
+#   }
+# }
