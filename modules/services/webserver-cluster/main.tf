@@ -31,20 +31,28 @@ resource "aws_autoscaling_group" "mcintosh-terraform-asg" {
   target_group_arns = [aws_lb_target_group.asg.arn]
   # ELB is enhanced version that will also watch for server unresponsive,
   # similar to Compose postgres health checks
-  health_check_type = "ELB" 
+  # health_check_type = "ELB" 
 
   min_size = var.min_size
   max_size = var.max_size
 
+  # Use instance refresh to roll out changes to the ASG
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+    }
+  }
+
   # Wait for at least this many instances to pass health checks before
   # considering the ASG deployment complete
-  min_elb_capacity = var.min_size
+  # min_elb_capacity = var.min_size
 
   # When replacing this ASG, create the replacement first, and only delete the
   # original after
-  lifecycle {
-    create_before_destroy = true
-  }
+  # lifecycle {
+  #   create_before_destroy = true
+  # }
 
   tag {
     key                 = "Name"
@@ -111,6 +119,7 @@ resource "aws_security_group" "alb" {
 # Load balancer that will distribute traffic to the instances
 resource "aws_lb" "mcintosh-terraform-lb" {
   name               = "mcintosh-terraform-asg"
+  # name               = "${var.cluster_name}-asg"
   load_balancer_type = "application"
   # Which VPC subnets to communicate on - default is WIDE OPEN
   subnets            = data.aws_subnets.default.ids 
@@ -126,19 +135,20 @@ resource "aws_lb_listener" "http" {
     protocol          = "HTTP"
 
     default_action {
-    type = "fixed-response"
+      type = "fixed-response"
 
-    fixed_response {
-            content_type = "text/plain"
-            message_body = "404: Page not found"
-            status_code  = 404
-        }
+      fixed_response {
+        content_type = "text/plain"
+        message_body = "404: Page not found"
+        status_code  = 404
+      }
     }
 }
 
 # Target group checks instance health for the load balancer
 resource "aws_lb_target_group" "asg" {
     name     = "mcintosh-terraform-asg"
+    # name     = "${var.cluster_name}-asg"
     port     = var.server_port
     protocol = "HTTP"
     vpc_id   = data.aws_vpc.default.id
@@ -184,6 +194,25 @@ resource "aws_security_group_rule" "allow_all_outbound" {
  to_port = local.any_port
  protocol = local.any_protocol
  cidr_blocks = local.all_ips
+}
+
+resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
+  count = var.enable_autoscaling ? 1 : 0
+  scheduled_action_name = "${var.cluster_name}-scale-out-during-business-hours"
+  min_size = 2
+  max_size = 10
+  desired_capacity = 10
+  recurrence = "0 9 * * *"
+  autoscaling_group_name = aws_autoscaling_group.mcintosh-terraform-asg.name
+}
+resource "aws_autoscaling_schedule" "scale_in_at_night" {
+  count                  = var.enable_autoscaling ? 1 : 0
+  scheduled_action_name  = "${var.cluster_name}-scale-in-at-night"
+  min_size               = 2
+  max_size               = 10
+  desired_capacity       = 2
+  recurrence             = "0 17 * * *"
+  autoscaling_group_name = aws_autoscaling_group.mcintosh-terraform-asg.name
 }
 
 data "terraform_remote_state" "db" {

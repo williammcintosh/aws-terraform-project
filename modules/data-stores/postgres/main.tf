@@ -1,6 +1,8 @@
 provider "aws" {
   region = "us-east-2"
 }
+
+# AWS Secrets Manager
 resource "aws_db_instance" "terraform-db" {
   identifier_prefix   = "mcintosh-terraform-db"
   engine              = "postgres"
