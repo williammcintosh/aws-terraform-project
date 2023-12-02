@@ -35,7 +35,7 @@ data "aws_eks_cluster_auth" "cluster" {
 # Create an EKS cluster
 
 module "eks_cluster" {
-  source = "../../../modules/services/eks-cluster"
+  source = "../../../../modules/services/eks-cluster"
 
   name = var.cluster_name
 
@@ -54,7 +54,7 @@ module "eks_cluster" {
 # Deploy a simple web app into the EKS cluster
 
 module "apod_hub" {
-  source = "../../../modules/services/k8s-app"
+  source = "../../../../modules/services/k8s-app"
 
   name = var.app_name
 
