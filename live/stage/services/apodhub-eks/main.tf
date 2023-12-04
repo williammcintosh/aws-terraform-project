@@ -59,7 +59,7 @@ module "apod_hub" {
   name = var.app_name
 
   image          = "training/webapp"
-#   image = "ghcr.io/williammcintosh/aws-terraform-project:15-alpine"
+#   image = "ghcr.io/williammcintosh/aws-terraform-project:15-alpine" # doesn't work.
 
   replicas       = 2
   container_port = 5000
