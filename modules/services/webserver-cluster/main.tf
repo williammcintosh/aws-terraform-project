@@ -1,42 +1,26 @@
-# Configure actual EC2 instance that runs basic busybox hello world serve
 resource "aws_launch_configuration" "mcintosh-terraform-launch-config" {
   image_id        = var.ami
   instance_type   = var.instance_type
   security_groups = [aws_security_group.instance.id]
 
-  # Render the User Data script as a template
   user_data       = templatefile("${path.module}/user-data.sh", {
     server_port   = var.server_port
     db_address    = data.terraform_remote_state.db.outputs.address
     db_port       = data.terraform_remote_state.db.outputs.port
     server_text   = var.server_text
   })
-  # Otherwise we'll destroy the old one first
-  # but it will still have reference in the ASG
   lifecycle {
     create_before_destroy = true
   }
 }
 
-# Creates group of instances from 2 to 4 that will scale up based on demand behind the load balancer
 resource "aws_autoscaling_group" "mcintosh-terraform-asg" {
-  # Explicitly depend on the launch configuration's name so each time it's
-  # replaced, this ASG is also replaced
   name = "${var.cluster_name}-${aws_launch_configuration.mcintosh-terraform-launch-config.name}"
-  # Name from launch config above
   launch_configuration = aws_launch_configuration.mcintosh-terraform-launch-config.name
-  # Get subnet IDs from data source
   vpc_zone_identifier  = data.aws_subnets.default.ids                             
-  # Get list of health-checkers based on ASG
   target_group_arns = [aws_lb_target_group.asg.arn]
-  # ELB is enhanced version that will also watch for server unresponsive,
-  # similar to Compose postgres health checks
-  # health_check_type = "ELB" 
-
   min_size = var.min_size
   max_size = var.max_size
-
-  # Use instance refresh to roll out changes to the ASG
   instance_refresh {
     strategy = "Rolling"
     preferences {
@@ -44,24 +28,12 @@ resource "aws_autoscaling_group" "mcintosh-terraform-asg" {
     }
   }
 
-  # Wait for at least this many instances to pass health checks before
-  # considering the ASG deployment complete
-  # min_elb_capacity = var.min_size
-
-  # When replacing this ASG, create the replacement first, and only delete the
-  # original after
-  # lifecycle {
-  #   create_before_destroy = true
-  # }
-
   tag {
     key                 = "Name"
     value               = var.cluster_name
     propagate_at_launch = true
   }
 
-  # If var.custom_tags is empty, the for_each expression will have nothing to loop
-  # over, so no tags will be set (page 166)
   dynamic "tag" {
     for_each = {
       for key, value in var.custom_tags:
@@ -76,7 +48,6 @@ resource "aws_autoscaling_group" "mcintosh-terraform-asg" {
   }
 }
 
-# Open port 8080 to all traffic
 resource "aws_security_group" "instance" {
   name = "${var.cluster_name}-instance"
 
@@ -88,7 +59,6 @@ resource "aws_security_group" "instance" {
   }
 }
 
-# Get default subnet within the aws_vpc
 data "aws_subnets" "default" {
     filter {
         name   = "vpc-id"
@@ -100,23 +70,10 @@ data "aws_subnets" "default" {
     }
 }
 
-# Security group to allow ALB listeners to allow incoming reqs on 80
-# and allow all outgoing (for itself to communicate with VPCs)
 resource "aws_security_group" "alb" {
  name = "${var.cluster_name}-alb"
 }
 
-# resource "aws_security_group_rule" "allow_server_http_inbound" {
-#   type              = "ingress"
-#   security_group_id = aws_security_group.instance.id
-
-#   from_port   = var.server_port
-#   to_port     = var.server_port
-#   protocol    = local.tcp_protocol
-#   cidr_blocks = local.all_ips
-# }
-
-# Load balancer that will distribute traffic to the instances
 resource "aws_lb" "mcintosh-terraform-lb" {
   name               = "mcintosh-terraform-asg"
   # name               = "${var.cluster_name}-asg"
@@ -127,8 +84,6 @@ resource "aws_lb" "mcintosh-terraform-lb" {
   security_groups    = [aws_security_group.alb.id]  
 }
 
-# This is what forwards the actual requests to the correct destination behind the load balancer
-# It acts like a router flexible enough to let you route to whatever service you want
 resource "aws_lb_listener" "http" {
     load_balancer_arn = aws_lb.mcintosh-terraform-lb.arn
     port              = local.http_port
@@ -145,10 +100,8 @@ resource "aws_lb_listener" "http" {
     }
 }
 
-# Target group checks instance health for the load balancer
 resource "aws_lb_target_group" "asg" {
     name     = "mcintosh-terraform-asg"
-    # name     = "${var.cluster_name}-asg"
     port     = var.server_port
     protocol = "HTTP"
     vpc_id   = data.aws_vpc.default.id
@@ -164,7 +117,6 @@ resource "aws_lb_target_group" "asg" {
     }
 }
 
-# Create listener rules
 resource "aws_lb_listener_rule" "asg" {
     listener_arn = aws_lb_listener.http.arn
     priority = 100
