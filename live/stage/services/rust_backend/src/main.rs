@@ -15,5 +15,5 @@ async fn main() {
 }
 
 async fn handler() -> &'static str {
-    "Hello, world!"
+    "Hello, world, from RUST - bitches!"
 }
