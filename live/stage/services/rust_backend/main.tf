@@ -46,32 +46,47 @@ data "aws_subnets" "default" {
 	}
 }
 
-# Add fargate serverless resources
-resource "aws_ecs_task_definition" "app_task" {
-	family                   = "rust-backend-task" # Name your task
-	container_definitions    = <<DEFINITION
-  [
-    {
-      "name": "rust-backend-task",
-      "image": "${aws_ecr_repository.app_ecr_repo.repository_url}",
-      "essential": true,
-      "portMappings": [
-        {
-          "containerPort": ${local.http_port},
-          "hostPort": ${local.http_port}
-        }
-      ],
-      "memory": 512,
-      "cpu": 256
-    }
-  ]
-  DEFINITION
-	requires_compatibilities = ["FARGATE"] # use Fargate as the launch type
-	network_mode             = "awsvpc"    # add the AWS VPN network mode as this is required for Fargate
-	memory                   = 512         # Specify the memory the container requires
-	cpu                      = 256         # Specify the CPU the container requires
-	execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn
+data "aws_secretsmanager_secret_version" "creds" {                                                             
+    secret_id = "db-creds"                                                                                          
+} 
+
+locals {
+  #AWS Secrets Manager
+  db_creds = jsondecode(
+    data.aws_secretsmanager_secret_version.creds.secret_string
+  )
 }
+
+# Add fargate serverless resources
+resource "aws_ecs_task_definition" "app_task" {                                                                   
+    family                   = "rust-backend-task"                                                                  
+    container_definitions    = jsonencode([{                                                                        
+    name = "rust-backend-task",                                                                                   
+    image = aws_ecr_repository.app_ecr_repo.repository_url,                                                       
+    essential = true,                                                                                             
+    portMappings = [{                                                                                             
+        containerPort = local.http_port,                                                                            
+        hostPort      = local.http_port                                                                             
+    }],                                                                                                           
+    memory = 512,                                                                                                 
+    cpu    = 256,                                                                                                 
+    secrets = [                                                                                                   
+        {                                                                                                           
+            name      = "DATABASE_USERNAME",                                                                          
+            valueFrom = local.db_creds.username                           
+        },                                                                                                          
+        {                                                                                                           
+            name      = "DATABASE_PASSWORD",                                                                          
+            valueFrom = local.db_creds.password
+        }                                                                                                           
+    ]                                                                                                          
+    }])                                                                                                             
+    requires_compatibilities = ["FARGATE"]                                                                          
+    network_mode             = "awsvpc"                                                                             
+    memory                   = 512                                                                                  
+    cpu                      = 256                                                                                  
+    execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn                                                
+} 
 
 resource "aws_iam_role" "ecsTaskExecutionRole" {
 	name               = "ecsTaskExecutionRole"
