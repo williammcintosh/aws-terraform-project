@@ -46,49 +46,36 @@ data "aws_subnets" "default" {
 	}
 }
 
-data "aws_secretsmanager_secret" "db_creds" {
-    name = "db-creds"
-}
-
-data "aws_secretsmanager_secret_version" "db_creds_version" {
-    secret_id = data.aws_secretsmanager_secret.db_creds.id 
-}
-
-locals {
-    db_creds = jsondecode(data.aws_secretsmanager_secret_version.db_creds_version.secret_string)
-}
-
 # Add fargate serverless resources
-resource "aws_ecs_task_definition" "app_task" {
-    family                   = "rust-backend-task"
-    container_definitions    = jsonencode([{
-        name = "rust-backend-task",
-        image = aws_ecr_repository.app_ecr_repo.repository_url,
-        essential = true,
-        portMappings = [{
-            containerPort = local.http_port,
-            hostPort      = local.http_port
-        }],
-        memory = 512,
-        cpu    = 256,
-        # This 'secrets' below causes a 503 error. Without it, it works fine.
-        # secrets = [
-        #     {
-        #         name      = "DATABASE_USERNAME",
-        #         valueFrom = "${data.aws_secretsmanager_secret_version.db_creds_version.secret_id}:username::"
-        #     },
-        #     {
-        #         name      = "DATABASE_PASSWORD",
-        #         valueFrom = "${data.aws_secretsmanager_secret_version.db_creds_version.secret_id}:password::"
-        #     }
-        # ]
-    }])
-    requires_compatibilities = ["FARGATE"]
-    network_mode             = "awsvpc"
-    memory                   = 512
-    cpu                      = 256
-    execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn
-}
+    resource "aws_ecs_task_definition" "app_task" {                                                                   
+      family                   = "rust-backend-task"                                                                  
+      container_definitions    = jsonencode([{                                                                        
+        name = "rust-backend-task",                                                                                   
+        image = aws_ecr_repository.app_ecr_repo.repository_url,                                                       
+        essential = true,                                                                                             
+        portMappings = [{                                                                                             
+          containerPort = local.http_port,                                                                            
+          hostPort      = local.http_port                                                                             
+        }],                                                                                                           
+        memory = 512,                                                                                                 
+        cpu    = 256,                                                                                                 
+    #     secrets = [                                                                                                   
+    #       {                                                                                                           
+    #         name      = "DB_USERNAME",                                                                                
+    #         valueFrom = "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:db-creds-username-A1B2C3"                    
+    #       },                                                                                                          
+    #       {                                                                                                           
+    #         name      = "DB_PASSWORD",                                                                                
+    #         valueFrom = "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:db-creds-password-A1B2C3"                    
+    #       }                                                                                                           
+    #     ]                                                                                                             
+      }])                                                                                                             
+      requires_compatibilities = ["FARGATE"]                                                                          
+      network_mode             = "awsvpc"                                                                             
+      memory                   = 512                                                                                  
+      cpu                      = 256                                                                                  
+      execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn                                                
+    } 
 
 resource "aws_iam_role" "ecsTaskExecutionRole" {
 	name               = "ecsTaskExecutionRole"
@@ -98,6 +85,7 @@ resource "aws_iam_role" "ecsTaskExecutionRole" {
 data "aws_iam_policy_document" "assume_role_policy" {
 	statement {
 		actions = ["sts:AssumeRole"]
+
 		principals {
 			type        = "Service"
 			identifiers = ["ecs-tasks.amazonaws.com"]
@@ -108,28 +96,6 @@ data "aws_iam_policy_document" "assume_role_policy" {
 resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
 	role       = aws_iam_role.ecsTaskExecutionRole.name
 	policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-data "aws_iam_policy_document" "ecs_tasks_policy" {
-    statement {
-        effect = "Allow"
-        actions = [
-            "secretsmanager:GetSecretValue",
-        ]
-        resources = [
-            data.aws_secretsmanager_secret.db_creds.arn,
-        ]
-    }
-}
-
-resource "aws_iam_policy" "ecs_tasks_policy" {
-    name   = "ecs_tasks_policy"
-    policy = data.aws_iam_policy_document.ecs_tasks_policy.json
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_tasks_policy_attachment" {
-    role       = aws_iam_role.ecsTaskExecutionRole.name
-    policy_arn = aws_iam_policy.ecs_tasks_policy.arn
 }
 
 # Security group to allow ALB listeners to allow incoming reqs on 80 and allow all outgoing (for itself to communicate with VPCs)
