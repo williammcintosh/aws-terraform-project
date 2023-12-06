@@ -14,6 +14,22 @@ locals {
   )
 }
 
+resource "aws_secretsmanager_secret" "db_credies" {
+  name = "db_credies"
+}
+
+resource "aws_secretsmanager_secret_version" "db_credentials_version" {
+  secret_id = aws_secretsmanager_secret.db_credies.id
+  secret_string = <<EOF
+  {
+    "username": "${local.db_creds.username}",
+    "password": "${local.db_creds.password}",
+    "address": "${module.postgres.address}",
+    "port": "${module.postgres.port}"
+  }
+  EOF
+}
+
 module "postgres" {
   source      = "../../../../modules/data-stores/postgres"
   db_name     = var.db_name

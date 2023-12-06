@@ -18,6 +18,8 @@ provider "aws" {
 # 	}
 # }
 
+
+
 # moved to modules/services/ecr-registry
 resource "aws_ecr_repository" "app_ecr_repo" {
 	name = "rust-backend"
@@ -30,6 +32,15 @@ resource "aws_ecs_cluster" "rust_backend_cluster" {
 # Get default VPC for region
 data "aws_vpc" "default" {
 	default = true
+}
+
+data "terraform_remote_state" "postgres" {
+    backend = "s3"
+    config = {
+        bucket = "mcintosh-terraform-state-storage-prod"
+        key    = "prod/data-stores/postgres/terraform.tfstate"
+        region = local.region
+    }
 }
 
 # Get default subnet within the aws_vpc
@@ -47,35 +58,43 @@ data "aws_subnets" "default" {
 }
 
 # Add fargate serverless resources
-    resource "aws_ecs_task_definition" "app_task" {                                                                   
-      family                   = "rust-backend-task"                                                                  
-      container_definitions    = jsonencode([{                                                                        
-        name = "rust-backend-task",                                                                                   
-        image = aws_ecr_repository.app_ecr_repo.repository_url,                                                       
-        essential = true,                                                                                             
-        portMappings = [{                                                                                             
-          containerPort = local.http_port,                                                                            
-          hostPort      = local.http_port                                                                             
-        }],                                                                                                           
-        memory = 512,                                                                                                 
-        cpu    = 256,                                                                                                 
-    #     secrets = [                                                                                                   
-    #       {                                                                                                           
-    #         name      = "DB_USERNAME",                                                                                
-    #         valueFrom = "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:db-creds-username-A1B2C3"                    
-    #       },                                                                                                          
-    #       {                                                                                                           
-    #         name      = "DB_PASSWORD",                                                                                
-    #         valueFrom = "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:db-creds-password-A1B2C3"                    
-    #       }                                                                                                           
-    #     ]                                                                                                             
-      }])                                                                                                             
-      requires_compatibilities = ["FARGATE"]                                                                          
-      network_mode             = "awsvpc"                                                                             
-      memory                   = 512                                                                                  
-      cpu                      = 256                                                                                  
-      execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn                                                
-    } 
+    resource "aws_ecs_task_definition" "app_task" {
+      family                   = "rust-backend-task"
+      container_definitions    = jsonencode([{
+        name = "rust-backend-task",
+        image = aws_ecr_repository.app_ecr_repo.repository_url,
+        essential = true,
+        portMappings = [{
+          containerPort = local.http_port,
+          hostPort      = local.http_port
+        }],
+        memory = 512,
+        cpu    = 256,
+        secrets = [
+          {
+            name      = "DATABASE_USERNAME",
+            valueFrom = "${data.terraform_remote_state.postgres.db_credentials_secret_arn}:username::"
+          },
+          {
+            name      = "DATABASE_PASSWORD",
+            valueFrom = "${data.terraform_remote_state.postgres.db_credentials_secret_arn}:password::"
+          },
+		  {
+            name      = "DATABASE_HOST",
+            valueFrom = "${data.terraform_remote_state.postgres.db_credentials_secret_arn}:address::"
+          },
+		  {
+            name      = "DATABASE_HOST",
+            valueFrom = "${data.terraform_remote_state.postgres.db_credentials_secret_arn}:port::"
+          }
+        ]
+      }])
+      requires_compatibilities = ["FARGATE"]
+      network_mode             = "awsvpc"
+      memory                   = 512
+      cpu                      = 256
+      execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn
+    }
 
 resource "aws_iam_role" "ecsTaskExecutionRole" {
 	name               = "ecsTaskExecutionRole"
