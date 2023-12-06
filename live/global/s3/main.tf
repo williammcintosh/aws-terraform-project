@@ -51,11 +51,28 @@ resource "aws_dynamodb_table" "terraform_locks" {
     }
 }
 
-# The remainder of this config is in global/config/backend.hcl 
+#==================================================================================
+#    DELETED YOUR BUCKET? WANT IT ALL BACK?
+#    GOT THE ERROR: "state data in S3 does not have expected data"?
+#    No biggie. I got you. Time to nuke.
+#
+#    1. Delete all of these files/folders in "live/global/s3":
+#        .terraform
+#        .terraform.lock.hcl
+#        terraform.tfstate
+#        terraform.tfstate.backup
+#    2. In AWS console -> S3 -> delete the bucket.
+#    3. In AWS console -> dynamodb delete the dynamodb.
+#    4. Comment out the 'terraform' block below, save.
+#    5. Run 'terraform init' (not 'just init'!)
+#    6. Run 'terraform apply'
+#        Doing this should build back the S3 bucket and dynamodb in AWS console
+#    7. Uncomment out the 'terraform' block below, save.
+#    8. Run 'just init'
+#    9. Run 'just apply'
+#==================================================================================
+
 terraform {
-  # Reminder this is partial config, must use either:
-  # $ terraform init -backend-config=../config/backend.hcl (without justfile)
-  # $ just init (with justfile)
   backend "s3" {
     key = "global/s3/terraform.tfstate"
   }

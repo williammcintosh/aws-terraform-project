@@ -14,12 +14,16 @@ locals {
   )
 }
 
-resource "aws_secretsmanager_secret" "db_credies" {
-  name = "db_credies"
+resource "aws_secretsmanager_secret" "db_credentials_copy_not_sure_why" {
+  name = "db_credentials_copy_not_sure_why"
+#  recovery_window_in_days = 0
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_secretsmanager_secret_version" "db_credentials_version" {
-  secret_id = aws_secretsmanager_secret.db_credies.id
+  secret_id = aws_secretsmanager_secret.db_credentials_copy_not_sure_why.id
   secret_string = <<EOF
   {
     "username": "${local.db_creds.username}",

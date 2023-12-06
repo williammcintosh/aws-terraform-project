@@ -11,14 +11,12 @@ provider "aws" {
 	region = local.region
 }
 
-# terraform {
-# 	# Reminder this is partial config, must use terraform init -backend-config=backend.hcl (just init)
-# 	backend "s3" {
-# 		key = "stage/services/rust_backend/terraform.tfstate"
-# 	}
-# }
-
-
+ terraform {
+ 	# Reminder this is partial config, must use terraform init -backend-config=backend.hcl (just init)
+ 	backend "s3" {
+ 		key = "live/stage/services/rust_backend/terraform.tfstate"
+ 	}
+ }
 
 # moved to modules/services/ecr-registry
 resource "aws_ecr_repository" "app_ecr_repo" {
@@ -37,8 +35,8 @@ data "aws_vpc" "default" {
 data "terraform_remote_state" "postgres" {
     backend = "s3"
     config = {
-        bucket = "mcintosh-terraform-state-storage-prod"
-        key    = "prod/data-stores/postgres/terraform.tfstate"
+        bucket = "mcintosh-terraform-state-storage"
+        key    = "live/stage/data-stores/postgres/terraform.tfstate"
         region = local.region
     }
 }
@@ -73,19 +71,19 @@ data "aws_subnets" "default" {
         secrets = [
           {
             name      = "DATABASE_USERNAME",
-            valueFrom = "${data.terraform_remote_state.postgres.db_credentials_secret_arn}:username::"
+            valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:username::"
           },
           {
             name      = "DATABASE_PASSWORD",
-            valueFrom = "${data.terraform_remote_state.postgres.db_credentials_secret_arn}:password::"
+            valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:password::"
           },
 		  {
             name      = "DATABASE_HOST",
-            valueFrom = "${data.terraform_remote_state.postgres.db_credentials_secret_arn}:address::"
+            valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:address::"
           },
 		  {
-            name      = "DATABASE_HOST",
-            valueFrom = "${data.terraform_remote_state.postgres.db_credentials_secret_arn}:port::"
+            name      = "DATABASE_PORT",
+            valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:port::"
           }
         ]
       }])
