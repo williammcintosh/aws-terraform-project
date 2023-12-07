@@ -21,6 +21,9 @@ provider "aws" {
 # moved to modules/services/ecr-registry
 resource "aws_ecr_repository" "app_ecr_repo" {
 	name = "rust-backend"
+#	lifecycle {
+#		prevent_destroy = true
+#	}
 }
 
 resource "aws_ecs_cluster" "rust_backend_cluster" {
@@ -56,43 +59,49 @@ data "aws_subnets" "default" {
 }
 
 # Add fargate serverless resources
-    resource "aws_ecs_task_definition" "app_task" {
-      family                   = "rust-backend-task"
-      container_definitions    = jsonencode([{
-        name = "rust-backend-task",
-        image = aws_ecr_repository.app_ecr_repo.repository_url,
-        essential = true,
-        portMappings = [{
-          containerPort = local.http_port,
-          hostPort      = local.http_port
-        }],
-        memory = 512,
-        cpu    = 256,
-        secrets = [
-          {
-            name      = "DATABASE_USERNAME",
-            valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:username::"
-          },
-          {
-            name      = "DATABASE_PASSWORD",
-            valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:password::"
-          },
-		  {
-            name      = "DATABASE_HOST",
-            valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:address::"
-          },
-		  {
-            name      = "DATABASE_PORT",
-            valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:port::"
-          }
-        ]
-      }])
-      requires_compatibilities = ["FARGATE"]
-      network_mode             = "awsvpc"
-      memory                   = 512
-      cpu                      = 256
-      execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn
+resource "aws_ecs_task_definition" "app_task" {
+	family                   = "rust-backend-task"
+	container_definitions    = <<DEFINITION
+  [
+    {
+      "name": "rust-backend-task",
+       "image": "${aws_ecr_repository.app_ecr_repo.repository_url}",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": ${local.http_port},
+          "hostPort": ${local.http_port}
+        }
+      ],
+      "memory": 512,
+      "cpu": 256,
+      "secrets": [
+        {
+          "name": "DATABASE_USERNAME",
+          "valueFrom":"${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:username::"
+        },
+        {
+          "name": "DATABASE_PASSWORD",
+          "valueFrom": "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:password::"
+        },
+        {
+          "name": "DATABASE_HOST",
+          "valueFrom": "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:address::"
+        },
+        {
+          "name": "DATABASE_PORT",
+          "valueFrom": "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:port::"
+        }
+      ]
     }
+  ]
+  DEFINITION
+	requires_compatibilities = ["FARGATE"]
+	network_mode             = "awsvpc"
+	memory                   = 512
+	cpu                      = 256
+	execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn
+}
 
 resource "aws_iam_role" "ecsTaskExecutionRole" {
 	name               = "ecsTaskExecutionRole"

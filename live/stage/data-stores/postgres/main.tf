@@ -5,7 +5,9 @@ provider "aws" {
 # AWS Secrets Manager
 data "aws_secretsmanager_secret_version" "creds" {
   secret_id = "db-creds"
+#  secret_id = "db_credentials_copy_of_creds_bullshit_again_I_hate_this"
 }
+
 
 locals {
   #AWS Secrets Manager
@@ -14,16 +16,18 @@ locals {
   )
 }
 
-resource "aws_secretsmanager_secret" "db_credentials_copy_not_sure_why" {
-  name = "db_credentials_copy_not_sure_why"
-#  recovery_window_in_days = 0
-  lifecycle {
-    prevent_destroy = true
-  }
+#resource "aws_secretsmanager_secret" "db_creds" {
+#    name = "db-creds"
+#}
+
+resource "aws_secretsmanager_secret" "db_credentials_copy_of_creds_bullshit_again_I_hate_this" {
+  name = "db_credentials_copy_of_creds_bullshit_again_I_hate_this"
+  # kills the newly created db credentials immediately
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "db_credentials_version" {
-  secret_id = aws_secretsmanager_secret.db_credentials_copy_not_sure_why.id
+  secret_id = aws_secretsmanager_secret.db_credentials_copy_of_creds_bullshit_again_I_hate_this.id
   secret_string = <<EOF
   {
     "username": "${local.db_creds.username}",
