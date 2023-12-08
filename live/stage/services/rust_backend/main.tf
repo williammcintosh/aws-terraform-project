@@ -59,6 +59,8 @@ data "aws_subnets" "default" {
 }
 
 # Add fargate serverless resources
+# Add fargate serverless resources
+#Secrets sections uses the postgres datasource to get ahold of the postgres info
 resource "aws_ecs_task_definition" "app_task" {
 	family                   = "rust-backend-task"
 	container_definitions    = <<DEFINITION
@@ -75,10 +77,10 @@ resource "aws_ecs_task_definition" "app_task" {
       ],
       "memory": 512,
       "cpu": 256,
-      "secrets": [
+      "environment": [
         {
           "name": "DATABASE_USERNAME",
-          "valueFrom":"${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:username::"
+          "valueFrom": "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:username::"
         },
         {
           "name": "DATABASE_PASSWORD",
@@ -122,6 +124,27 @@ data "aws_iam_policy_document" "assume_role_policy" {
 resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
 	role       = aws_iam_role.ecsTaskExecutionRole.name
 	policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# Define an IAM policy that grants the task access to the necessary secrets
+data "aws_iam_policy_document" "ecs_secrets_policy" {
+	statement {
+#		effect    = "Allow"
+		actions   = ["secretsmanager:GetSecretValue"]
+		resources = [data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn]
+	}
+}
+
+# Create the IAM policy resource
+resource "aws_iam_policy" "ecs_secrets_iam_policy" {
+	name   = "ecs-tasks-access-secrets"
+	policy = data.aws_iam_policy_document.ecs_secrets_policy.json
+}
+
+# Attach the policy to the existing ECS Task Execution Role
+resource "aws_iam_role_policy_attachment" "ecs_secrets_policy_attachment" {
+	role       = aws_iam_role.ecsTaskExecutionRole.name
+	policy_arn = aws_iam_policy.ecs_secrets_iam_policy.arn
 }
 
 # Security group to allow ALB listeners to allow incoming reqs on 80 and allow all outgoing (for itself to communicate with VPCs)

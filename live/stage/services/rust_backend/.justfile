@@ -22,3 +22,6 @@ plan:
     terraform plan
 destroy:
     terraform destroy -target aws_ecr_repository.app_ecr_repo
+
+# After updating the Rust code to re-push the container:
+# just dockerLogin && just dockerBuild && just dockerTag && just dockerPush && just apply
