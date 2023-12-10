@@ -1,10 +1,14 @@
 locals {
 	http_port    = 3000
+	postgres_port = 5432
 	any_port     = 0
 	any_protocol = "-1"
 	tcp_protocol = "tcp"
 	all_ips      = ["0.0.0.0/0"]
     region       = "us-east-2"
+	# Replace with your real, local IP address with a '/32' at the end.
+	# Get your ip address from here: https://www.whatismyip.com/
+	local_machine_ip = ["64.252.57.46/32"]
 }
 
 provider "aws" {
@@ -21,9 +25,6 @@ provider "aws" {
 # moved to modules/services/ecr-registry
 resource "aws_ecr_repository" "app_ecr_repo" {
 	name = "rust-backend"
-#	lifecycle {
-#		prevent_destroy = true
-#	}
 }
 
 resource "aws_ecs_cluster" "rust_backend_cluster" {
@@ -63,41 +64,35 @@ data "aws_subnets" "default" {
 #Secrets sections uses the postgres datasource to get ahold of the postgres info
 resource "aws_ecs_task_definition" "app_task" {
 	family                   = "rust-backend-task"
-	container_definitions    = <<DEFINITION
-  [
-    {
-      "name": "rust-backend-task",
-       "image": "${aws_ecr_repository.app_ecr_repo.repository_url}",
-      "essential": true,
-      "portMappings": [
-        {
-          "containerPort": ${local.http_port},
-          "hostPort": ${local.http_port}
-        }
-      ],
-      "memory": 512,
-      "cpu": 256,
-      "environment": [
-        {
-          "name": "DATABASE_USERNAME",
-          "valueFrom": "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:username::"
-        },
-        {
-          "name": "DATABASE_PASSWORD",
-          "valueFrom": "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:password::"
-        },
-        {
-          "name": "DATABASE_HOST",
-          "valueFrom": "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:address::"
-        },
-        {
-          "name": "DATABASE_PORT",
-          "valueFrom": "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:port::"
-        }
-      ]
-    }
-  ]
-  DEFINITION
+	container_definitions    = jsonencode([{
+		name = "rust-backend-task",
+		image = aws_ecr_repository.app_ecr_repo.repository_url,
+		essential = true,
+		portMappings = [{
+			containerPort = local.http_port,
+			hostPort      = local.http_port
+		}],
+		memory = 512,
+		cpu    = 256,
+		environment = [
+			{
+				name      = "DATABASE_USERNAME",
+				valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:username::"
+			},
+			{
+				name      = "DATABASE_PASSWORD",
+				valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:password::"
+			},
+			{
+				name      = "DATABASE_HOST",
+				valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:address::"
+			},
+			{
+				name      = "DATABASE_PORT",
+				valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:port::"
+			}
+		]
+	}])
 	requires_compatibilities = ["FARGATE"]
 	network_mode             = "awsvpc"
 	memory                   = 512
@@ -158,6 +153,15 @@ resource "aws_security_group_rule" "allow_http_inbound" {
 	to_port           = local.http_port
 	protocol          = local.tcp_protocol
 	cidr_blocks       = local.all_ips
+}
+
+resource "aws_security_group_rule" "allow_my_ip" {
+	type              = "ingress"
+	security_group_id = aws_security_group.alb.id
+	from_port         = local.postgres_port
+	to_port           = local.postgres_port
+	protocol          = local.tcp_protocol
+	cidr_blocks       = local.local_machine_ip
 }
 
 resource "aws_security_group_rule" "allow_all_outbound" {

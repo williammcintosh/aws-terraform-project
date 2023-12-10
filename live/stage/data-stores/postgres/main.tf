@@ -2,10 +2,13 @@ provider "aws" {
   region = "us-east-2"
 }
 
+# bash command to access postgres database form local machine:
+# psql -h {DATABASE_ENDPOINT} -p {DATABASE_PORT} -U {DATABASE_USERNAME} -d {DATABASE_NAME}
+
 # AWS Secrets Manager
 data "aws_secretsmanager_secret_version" "creds" {
   secret_id = "db-creds"
-#  secret_id = "db_credentials_copy_of_creds_bullshit_again_I_hate_this"
+#  secret_id = "db_credentials_secrets_copy"
 }
 
 
@@ -20,14 +23,14 @@ locals {
 #    name = "db-creds"
 #}
 
-resource "aws_secretsmanager_secret" "db_credentials_copy_of_creds_bullshit_again_I_hate_this" {
-  name = "db_credentials_copy_of_creds_bullshit_again_I_hate_this"
+resource "aws_secretsmanager_secret" "db_credentials_secrets_copy" {
+  name = "db_credentials_secrets_copy"
   # kills the newly created db credentials immediately
   recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "db_credentials_version" {
-  secret_id = aws_secretsmanager_secret.db_credentials_copy_of_creds_bullshit_again_I_hate_this.id
+  secret_id = aws_secretsmanager_secret.db_credentials_secrets_copy.id
   secret_string = <<EOF
   {
     "username": "${local.db_creds.username}",

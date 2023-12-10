@@ -9,5 +9,5 @@ output "port" {
 }
 
 output "db_credentials_secret_arn" {
-  value = aws_secretsmanager_secret.db_credentials_copy_of_creds_bullshit_again_I_hate_this.arn
+  value = aws_secretsmanager_secret.db_credentials_secrets_copy.arn
 }
