@@ -1,4 +1,8 @@
-Terraform Rust AWS Site
+# Terraform Rust AWS Site
+
+# Inspiration
+
+I was inspired to better understand AWS environments related to postgres databases and hosting a rust website. This project began with the recently published book by Yevgeniy Brikman titled "Terraform Up & Running", and then transitioned into a rust website connected to a postgres RDS.
 
 # Installing and Starting Web Application
 
