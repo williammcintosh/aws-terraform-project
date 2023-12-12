@@ -15,20 +15,20 @@ I was inspired to better understand AWS environments related to postgres databas
 1. **Source Stage**: Code repository (like GitHub, Bitbucket, AWS CodeCommit) triggers the pipeline when changes are pushed.
 2. **Build Stage**: AWS CodeBuild compiles the Rust code, runs tests, and packages the application.
 3. **Artifact Storage**: AWS S3 bucket stores the built artifacts securely.
-4. **Deployment Stage**: AWS CodeDeploy automates the deployment of the application to AWS ECS using 
-   * (serverless compute for containers.
+4. **Deployment Stage**: AWS CodeDeploy automates the deployment of the application to AWS ECS using (serverless compute for containers.)
 5. **AWS ECS with Fargate**: Runs containerized Rust applications with easy scaling and management.
 6. **Load Balancing**: AWS ALB (Application Load Balancer) distributes incoming application traffic across
   multiple targets.                                                                                                   
 
 ### Supporting AWS Services:
-    - **Amazon RDS (PostgreSQL)**: Managed relational database service hosting the application database.
-    - **Amazon ECR (Elastic Container Registry)**: Docker container registry stores the Rust application container images.
-    - **AWS Secrets Manager**: Manages database credentials and other secrets, providing secure access to ECS tasks.
-    - **AWS IAM**: Defines roles and policies for secure access to AWS resources.
-    - **AWS VPC**: Provides a private section of the AWS cloud where AWS resources can be launched in a defined virtual network.
-    - **Amazon DynamoDB**: Provides a managed NoSQL database for lock tables to support state locking in Terraform.
-    - **Remote State Backend (S3)**: S3 buckets store the state files for Terraform, ensuring consistent configurations and change tracking.
+
+- **Amazon RDS (PostgreSQL)**: Managed relational database service hosting the application database.
+- **Amazon ECR (Elastic Container Registry)**: Docker container registry stores the Rust application container images.
+- **AWS Secrets Manager**: Manages database credentials and other secrets, providing secure access to ECS tasks.
+- **AWS IAM**: Defines roles and policies for secure access to AWS resources.
+- **AWS VPC**: Provides a private section of the AWS cloud where AWS resources can be launched in a defined virtual network.
+- **Amazon DynamoDB**: Provides a managed NoSQL database for lock tables to support state locking in Terraform.
+- **Remote State Backend (S3)**: S3 buckets store the state files for Terraform, ensuring consistent configurations and change tracking.
 
 ### Continuous Deployment Flow:
 
