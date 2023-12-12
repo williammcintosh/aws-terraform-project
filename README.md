@@ -169,7 +169,7 @@ Our postgres database is currently using environment variables for the username 
   ```bash
   psql -h RDS_ENDPOINT -p PORT -U DB_USERNAME -d DB_NAME
   ```
-    * It should turn into this when you fill out the fields:
+  It should turn into this when you fill out the fields:
   ```bash
   psql -h mcintosh-terraform-db01234567891234567800000001.qwertyuiopas.us-east-2.rds.amazonaws.com -p 5432 -U actual_database_username -d actual_database_name
   ```
