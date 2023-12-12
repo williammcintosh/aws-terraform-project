@@ -4,6 +4,8 @@
 
 I was inspired to better understand AWS environments related to postgres databases and hosting a rust website. This project began with the recently published book by Yevgeniy Brikman titled "Terraform Up & Running", and then transitioned into a rust website connected to a postgres RDS.
 
+---
+
 # AWS Pipeline Workflow for Terraform and Rust Environment                                                        
                                                                                                                       
 ### High-Level AWS CodePipeline Description                                                                        
@@ -39,6 +41,8 @@ I was inspired to better understand AWS environments related to postgres databas
 5. AWS CodeDeploy orchestrates deployment to AWS ECS with Fargate tasks.                                          
 6. The ALB directs traffic to new tasks once they are healthy and running.                                        
 7. Monitoring and logging tools (like AWS CloudWatch) provide insights and alerting for application performance and health.   
+
+---
 
 # Installing and Starting Web Application
 
