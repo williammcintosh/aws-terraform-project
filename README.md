@@ -4,6 +4,42 @@
 
 I was inspired to better understand AWS environments related to postgres databases and hosting a rust website. This project began with the recently published book by Yevgeniy Brikman titled "Terraform Up & Running", and then transitioned into a rust website connected to a postgres RDS.
 
+# AWS Pipeline Workflow for Terraform and Rust Environment                                                        
+                                                                                                                      
+### High-Level AWS CodePipeline Description                                                                        
+                                                                                                                      
+![High-Level AWS CodePipeline Diagram](https://d2908q01vomqb2.cloudfront.net/22d200f8670dbdb3e253a90eee5098477c95c23d/2019/11/19/DevSecOps-Figure1.png)                       
+
+### Components of the Pipeline:
+
+1. **Source Stage**: Code repository (like GitHub, Bitbucket, AWS CodeCommit) triggers the pipeline when changes are pushed.
+2. **Build Stage**: AWS CodeBuild compiles the Rust code, runs tests, and packages the application.
+3. **Artifact Storage**: AWS S3 bucket stores the built artifacts securely.
+4. **Deployment Stage**: AWS CodeDeploy automates the deployment of the application to AWS ECS using 
+   * (serverless compute for containers.
+5. **AWS ECS with Fargate**: Runs containerized Rust applications with easy scaling and management.
+6. **Load Balancing**: AWS ALB (Application Load Balancer) distributes incoming application traffic across
+  multiple targets.                                                                                                   
+
+### Supporting AWS Services:
+    - **Amazon RDS (PostgreSQL)**: Managed relational database service hosting the application database.
+    - **Amazon ECR (Elastic Container Registry)**: Docker container registry stores the Rust application container images.
+    - **AWS Secrets Manager**: Manages database credentials and other secrets, providing secure access to ECS tasks.
+    - **AWS IAM**: Defines roles and policies for secure access to AWS resources.
+    - **AWS VPC**: Provides a private section of the AWS cloud where AWS resources can be launched in a defined virtual network.
+    - **Amazon DynamoDB**: Provides a managed NoSQL database for lock tables to support state locking in Terraform.
+    - **Remote State Backend (S3)**: S3 buckets store the state files for Terraform, ensuring consistent configurations and change tracking.
+
+### Continuous Deployment Flow:
+
+1. Developer pushes code to the Source Repository.                                                                
+2. AWS CodePipeline is triggered.                                                                                 
+3. Code is built and tested using AWS CodeBuild.                                                                  
+4. Build artifacts are stored in an AWS S3 bucket.                                                                
+5. AWS CodeDeploy orchestrates deployment to AWS ECS with Fargate tasks.                                          
+6. The ALB directs traffic to new tasks once they are healthy and running.                                        
+7. Monitoring and logging tools (like AWS CloudWatch) provide insights and alerting for application performance and health.   
+
 # Installing and Starting Web Application
 
 ### 1. Create IAM Root Account
