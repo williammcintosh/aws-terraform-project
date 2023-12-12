@@ -4,17 +4,20 @@ Terraform Rust AWS Site
 
 ### 1. Create IAM Root Account
 
+You will use this account only for navigating through the AWS console.
+
 1. Go to https://aws.amazon.com/
 2. Enter your credit card information as prompted.
 3. Go for the basic plan.
 
 ### 2. Create User Account
-Here, we are creating a more limited user account that we’re using to log in within our terraform code.
+
+Next, we create a more limited user account that we’re using to log in within our terraform code.
 
 1. Go here https://us-east-2.console.aws.amazon.com/iamv2/home
 2. Create a user under your name, give them the access key group “Application Running On an AWS Compute Service” and click “Save”
 
-You must save someplace on your local machine. These immediately because they will never be shown again! Use your favorite password storage software like keychain.
+I recommend saving these variables someplace on your local machine. Use your favorite password storage software like keychain.
 
 ### 3. Install Terraform
 
@@ -22,8 +25,9 @@ You must save someplace on your local machine. These immediately because they wi
 
 ### 4. Export Env Variables
 
-1. Open VSCode (or the editor of your choice)
-2. Start the terminal and run the command:
+1. Open VSCode (or the editor of your choice).
+2. Start the terminal.
+3. Run the command:
   ```bash
   export AWS_ACCESS_KEY_ID=(your access key id) && export AWS_SECRET_ACCESS_KEY=(your secret access key)
   ```
@@ -43,6 +47,8 @@ You must save someplace on your local machine. These immediately because they wi
 
 ### 7. Apply in /s3
 
+This part gets the storage setup for our terraform states and locks.
+
 1. Navigate to `live/global/s3`
 2. Comment out the block below in `main.tf`, save:
   ```rust
@@ -55,7 +61,7 @@ You must save someplace on your local machine. These immediately because they wi
 3. Run `terraform init` (not `just init`)
 4. Run `terraform apply` (not `just apply`)
 5. Doing this should build the S3 bucket and dynamodb in AWS console:
-6. Search for “S3” or “dynamodb”
+        * Search for “S3” or “dynamodb” in AWS console to view them.
 7. Uncomment out the 'terraform' block below, save.
   ```rust
   terraform {
@@ -68,6 +74,8 @@ You must save someplace on your local machine. These immediately because they wi
 9. Run 'just apply' (not `terraform apply`)
 
 ### 8. Create postgres Login
+
+In these steps, we are creating a postgres database that will require an AWS Secret to allow our terraform code to log in. We cannot create the AWS secret until we first have the postgres db setup - creating a chicken and the egg problem. In order to get our setup started with begin with using local environment variables to create the postgres database, then transition to using AWS secrets once it's created.
 
 1. Write a unique username and password for your database using your favorite password generator.
 2. Store the username and password in your favorite password storage software like keychain.
@@ -101,7 +109,6 @@ You must save someplace on your local machine. These immediately because they wi
 
 ### 10. Create Postgres Secret in AWS
 
-You need to create a username and password for you postgres database:
 In your AWS console navigate to:
 
 1. AWS Secrets Manager > click on [Store New Secret].
