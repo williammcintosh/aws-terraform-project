@@ -1,22 +1,26 @@
 locals {
 	http_port    = 3000
+	postgres_port = 5432
 	any_port     = 0
 	any_protocol = "-1"
 	tcp_protocol = "tcp"
 	all_ips      = ["0.0.0.0/0"]
     region       = "us-east-2"
+	# Replace with your real, local IP address with a '/32' at the end.
+	# Get your ip address from here: https://www.whatismyip.com/
+	local_machine_ip = ["64.252.57.46/32"]
 }
 
 provider "aws" {
 	region = local.region
 }
 
-# terraform {
-# 	# Reminder this is partial config, must use terraform init -backend-config=backend.hcl (just init)
-# 	backend "s3" {
-# 		key = "stage/services/rust_backend/terraform.tfstate"
-# 	}
-# }
+ terraform {
+ 	# Reminder this is partial config, must use terraform init -backend-config=backend.hcl (just init)
+ 	backend "s3" {
+ 		key = "live/stage/services/rust_backend/terraform.tfstate"
+ 	}
+ }
 
 # moved to modules/services/ecr-registry
 resource "aws_ecr_repository" "app_ecr_repo" {
@@ -30,6 +34,15 @@ resource "aws_ecs_cluster" "rust_backend_cluster" {
 # Get default VPC for region
 data "aws_vpc" "default" {
 	default = true
+}
+
+data "terraform_remote_state" "postgres" {
+    backend = "s3"
+    config = {
+        bucket = "mcintosh-terraform-state-storage"
+        key    = "live/stage/data-stores/postgres/terraform.tfstate"
+        region = local.region
+    }
 }
 
 # Get default subnet within the aws_vpc
@@ -47,29 +60,43 @@ data "aws_subnets" "default" {
 }
 
 # Add fargate serverless resources
+# Add fargate serverless resources
+#Secrets sections uses the postgres datasource to get ahold of the postgres info
 resource "aws_ecs_task_definition" "app_task" {
-	family                   = "rust-backend-task" # Name your task
-	container_definitions    = <<DEFINITION
-  [
-    {
-      "name": "rust-backend-task",
-      "image": "${aws_ecr_repository.app_ecr_repo.repository_url}",
-      "essential": true,
-      "portMappings": [
-        {
-          "containerPort": ${local.http_port},
-          "hostPort": ${local.http_port}
-        }
-      ],
-      "memory": 512,
-      "cpu": 256
-    }
-  ]
-  DEFINITION
-	requires_compatibilities = ["FARGATE"] # use Fargate as the launch type
-	network_mode             = "awsvpc"    # add the AWS VPN network mode as this is required for Fargate
-	memory                   = 512         # Specify the memory the container requires
-	cpu                      = 256         # Specify the CPU the container requires
+	family                   = "rust-backend-task"
+	container_definitions    = jsonencode([{
+		name = "rust-backend-task",
+		image = aws_ecr_repository.app_ecr_repo.repository_url,
+		essential = true,
+		portMappings = [{
+			containerPort = local.http_port,
+			hostPort      = local.http_port
+		}],
+		memory = 512,
+		cpu    = 256,
+		environment = [
+			{
+				name      = "DATABASE_USERNAME",
+				valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:username::"
+			},
+			{
+				name      = "DATABASE_PASSWORD",
+				valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:password::"
+			},
+			{
+				name      = "DATABASE_HOST",
+				valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:address::"
+			},
+			{
+				name      = "DATABASE_PORT",
+				valueFrom = "${data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn}:port::"
+			}
+		]
+	}])
+	requires_compatibilities = ["FARGATE"]
+	network_mode             = "awsvpc"
+	memory                   = 512
+	cpu                      = 256
 	execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn
 }
 
@@ -94,6 +121,27 @@ resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
 	policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Define an IAM policy that grants the task access to the necessary secrets
+data "aws_iam_policy_document" "ecs_secrets_policy" {
+	statement {
+#		effect    = "Allow"
+		actions   = ["secretsmanager:GetSecretValue"]
+		resources = [data.terraform_remote_state.postgres.outputs.db_credentials_secret_arn]
+	}
+}
+
+# Create the IAM policy resource
+resource "aws_iam_policy" "ecs_secrets_iam_policy" {
+	name   = "ecs-tasks-access-secrets"
+	policy = data.aws_iam_policy_document.ecs_secrets_policy.json
+}
+
+# Attach the policy to the existing ECS Task Execution Role
+resource "aws_iam_role_policy_attachment" "ecs_secrets_policy_attachment" {
+	role       = aws_iam_role.ecsTaskExecutionRole.name
+	policy_arn = aws_iam_policy.ecs_secrets_iam_policy.arn
+}
+
 # Security group to allow ALB listeners to allow incoming reqs on 80 and allow all outgoing (for itself to communicate with VPCs)
 resource "aws_security_group" "alb" {
 	name = "rust-backend-alb"
@@ -105,6 +153,15 @@ resource "aws_security_group_rule" "allow_http_inbound" {
 	to_port           = local.http_port
 	protocol          = local.tcp_protocol
 	cidr_blocks       = local.all_ips
+}
+
+resource "aws_security_group_rule" "allow_my_ip" {
+	type              = "ingress"
+	security_group_id = aws_security_group.alb.id
+	from_port         = local.postgres_port
+	to_port           = local.postgres_port
+	protocol          = local.tcp_protocol
+	cidr_blocks       = local.local_machine_ip
 }
 
 resource "aws_security_group_rule" "allow_all_outbound" {

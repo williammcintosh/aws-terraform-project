@@ -9,6 +9,7 @@ resource "aws_db_instance" "terraform-db" {
   allocated_storage   = 10
   instance_class      = "db.t3.micro"
   skip_final_snapshot = true
+  publicly_accessible = true  # Allows access from local IP address
 
   db_name             = var.db_name
   username            = var.db_username

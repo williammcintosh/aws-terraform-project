@@ -8,6 +8,6 @@ apply:
 plan:
     terraform plan
 destroy:
-    terraform destroy
+    terraform destroy -target aws_s3_bucket.terraform_state
 refresh:
     terraform refresh

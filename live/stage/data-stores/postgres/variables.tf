@@ -13,6 +13,6 @@
 variable "db_name" {
   description = "The name to use for the database"
   type        = string
-  default     = "mcintoshterrafomdatabasestage"
+  default     = "your_actual_database_name"
 }
 

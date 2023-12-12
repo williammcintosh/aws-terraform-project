@@ -8,6 +8,6 @@ apply:
 plan:
     terraform plan
 destroy:
-    terraform destroy
+    terraform destroy -target aws_secretsmanager_secret.db_credentials_secrets_copy
 refresh:
     terraform refresh
