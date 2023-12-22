@@ -2,7 +2,12 @@
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/live/global/s3/.terraform" />
+      <excludeFolder url="file://$MODULE_DIR$/live/prod/data-stores/postgres/.terraform" />
+      <excludeFolder url="file://$MODULE_DIR$/live/stage/data-stores/postgres/.terraform" />
+      <excludeFolder url="file://$MODULE_DIR$/live/stage/services/rust_backend/.terraform" />
+    </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
