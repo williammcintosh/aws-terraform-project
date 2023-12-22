@@ -199,7 +199,7 @@ Our postgres database is currently using environment variables for the username 
 1. Open your browser
 2. Copy the output “app_url” from following the previous steps
 3. Paste the app_url into the browser
-4. Append onto it a colon and 3000 `:3000` /leftarrow Very important
+4. Append onto it a colon and 3000 `:3000` $/leftarrow$ Very important
 5. It’ll look like this:
   ```bash
   http://load-balancer-dev-123456789.us-east-2.elb.amazonaws.com:3000/
