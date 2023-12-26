@@ -239,6 +239,26 @@ edit the **modules** for the postgres database:
 At this point you’ll be prompted to enter the password.
 You can do things like check the databases or insert databases into it https://www.geeksforgeeks.org/postgresql-psql-commands/
 
+### Adding Table
+
+Once you have performed the steps above you can create a test table like this:
+```sql
+CREATE TABLE test_table (                                                                                         
+        id SERIAL PRIMARY KEY,                                                                                        
+        name VARCHAR(255) NOT NULL,                                                                                   
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,                                                
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,                                                
+        active BOOLEAN DEFAULT TRUE                                                                                   
+    ); 
+```
+To seed that test table with three rows, perform this command:
+```sql
+INSERT INTO test_table (name, created_at, updated_at, active) VALUES                                              
+    ('Test Name 1', '2023-04-01 08:00:00+00', '2023-04-01 09:00:00+00', TRUE),                                        
+    ('Test Name 2', '2023-04-02 08:00:00+00', '2023-04-02 09:00:00+00', TRUE),                                        
+    ('Test Name 3', '2023-04-03 08:00:00+00', '2023-04-03 09:00:00+00', TRUE);
+```
+
 # Troubleshooting
 
 ### Test Container Locally
