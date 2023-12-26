@@ -190,11 +190,12 @@ Our postgres database is currently using environment variables for the username 
 
 ### 13. Edit IP Address
 
-To allow your personal ip address access to your postgres database
-in order to update the database (add tables, examine tables, etc):
+To allow your personal ip address access to your AWS postgres database
+for the purpose of adding tables, examining tables, etc), you need to
+edit the **modules** for the postgres database:
 
 1. Copy your local ip address from [whatismyipaddress.com](https://whatismyipaddress.com/)
-2. Navigate to `live/stage/services/rust_backend/variables.tf`
+2. Navigate to `modules/data-stores/postgres/variables.tf`
 3. Locate the block `variable "local_ip_address" {`
 4. Update `default` to your local ip address
 5. Save
