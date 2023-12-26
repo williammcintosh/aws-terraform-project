@@ -259,6 +259,18 @@ INSERT INTO test_table (name, created_at, updated_at, active) VALUES
     ('Test Name 3', '2023-04-03 08:00:00+00', '2023-04-03 09:00:00+00', TRUE);
 ```
 
+### Examining Test Table
+
+You can then see the contents of the test table by performing these commands:
+```sql
+SELECT * FROM test_table;
+```
+Show all tables:
+```sql
+\dt
+```
+
+
 # Troubleshooting
 
 ### Test Container Locally
