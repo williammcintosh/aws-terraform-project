@@ -188,6 +188,33 @@ Our postgres database is currently using environment variables for the username 
   # }
   ```
 
+### 12. Edit Docker ID
+
+To make edits to the rust backend image you'll need to connect
+the ECR repo to the docker image. You can do that by following
+these steps:
+
+1. Navigate to AWS console `Amazon ECR > Repositories > Private registry`
+2. Copy the URI (mine looks like `676598651720.dkr.ecr.us-east-2.amazonaws.com/rust-backend`)
+3. Navigate to `live/stage/services/rust_backend/.justfile`
+4. Replace dockerTag
+    ```
+    dockerTag:
+        docker tag rust-backend:latest 676598651720.dkr.ecr.us-east-2.amazonaws.com/rust-backend:latest
+    ```
+4. Replace dockerPush
+    ```
+    dockerPush:
+        docker push 676598651720.dkr.ecr.us-east-2.amazonaws.com/rust-backend:latest
+    ```
+5. Replace dockerLogin
+    ```
+    dockerLogin:
+        aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 676598651720.dkr.ecr.us-east-2.amazonaws.com
+    ```
+6. Navigate to `live/stage/services/rust_backend/`
+7. Run the bash command `just dockerLogin && just dockerBuild && just dockerTag && just dockerPush && just apply`
+    
 ### 13. Edit IP Address
 
 To allow your personal ip address access to your AWS postgres database
@@ -269,6 +296,12 @@ Show all tables:
 ```sql
 \dt
 ```
+
+### Update Docker Image
+
+When you make edits to the rust code, then do these steps:
+1. Navigate to `live/stage/services/rust_backend/`
+2. Run the bash command `just dockerLogin && just dockerBuild && just dockerTag && just dockerPush && just apply`
 
 
 # Troubleshooting
