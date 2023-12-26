@@ -188,13 +188,24 @@ Our postgres database is currently using environment variables for the username 
   # }
   ```
 
-### 13. Apply in /rust-backend
+### 13. Edit IP Address
+
+To allow your personal ip address access to your postgres database
+in order to update the database (add tables, examine tables, etc):
+
+1. Copy your local ip address from [whatismyipaddress.com](https://whatismyipaddress.com/)
+2. Navigate to `live/stage/services/rust_backend/variables.tf`
+3. Locate the block `variable "local_ip_address" {`
+4. Update `default` to your local ip address
+5. Save
+
+### 14. Apply in /rust-backend
 
 1. Navigate to `live/stage/services/rust_backend`
 2. Run 'just init' (not `terraform init`)
 3. Run 'just apply' (not `terraform apply`)
 
-### 14. Open App URL
+### 15. Open App URL
 
 1. Open your browser
 2. Copy the output “app_url” from following the previous steps
