@@ -6,9 +6,7 @@ locals {
 	tcp_protocol = "tcp"
 	all_ips      = ["0.0.0.0/0"]
     region       = "us-east-2"
-	# Replace with your real, local IP address with a '/32' at the end.
-	# Get your ip address from here: https://www.whatismyip.com/
-	local_machine_ip = ["64.252.57.46/32"]
+#	local_machine_ip = ["${var.local_ip_address}/32"]
 }
 
 provider "aws" {
@@ -155,14 +153,14 @@ resource "aws_security_group_rule" "allow_http_inbound" {
 	cidr_blocks       = local.all_ips
 }
 
-resource "aws_security_group_rule" "allow_my_ip" {
-	type              = "ingress"
-	security_group_id = aws_security_group.alb.id
-	from_port         = local.postgres_port
-	to_port           = local.postgres_port
-	protocol          = local.tcp_protocol
-	cidr_blocks       = local.local_machine_ip
-}
+#resource "aws_security_group_rule" "allow_my_ip" {
+#	type              = "ingress"
+#	security_group_id = aws_security_group.alb.id
+#	from_port         = local.postgres_port
+#	to_port           = local.postgres_port
+#	protocol          = local.tcp_protocol
+#	cidr_blocks       = local.local_machine_ip
+#}
 
 resource "aws_security_group_rule" "allow_all_outbound" {
 	type              = "egress"
