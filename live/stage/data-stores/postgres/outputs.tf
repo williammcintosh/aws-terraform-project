@@ -9,5 +9,7 @@ output "port" {
 }
 
 output "db_credentials_secret_arn" {
-  value = aws_secretsmanager_secret.db_credentials_secrets_copy.arn
+  value     = aws_secretsmanager_secret.db_credentials_secrets_copy.arn
+  description = "The ARN of the secret containing the database credentials"
+  sensitive = true
 }
